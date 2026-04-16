@@ -13,13 +13,12 @@ export default function Payroll({ user }) {
     return date.toLocaleString("en-US", { month: "long" });
   };
 
-  // Memoized fetch function to satisfy Vercel/ESLint rules
+  // Memoized fetch function
   const fetchMyPayroll = useCallback(async () => {
     if (!user?.id) return;
     try {
       setLoading(true);
       
-      // Selecting from payroll_history and joining with employees table
       const { data, error } = await supabase
         .from("payroll_history")
         .select(`
@@ -48,8 +47,8 @@ export default function Payroll({ user }) {
     const printWindow = window.open('', '_blank');
     const formatCurrency = (num) => `₹${(num ?? 0).toLocaleString('en-IN')}`;
 
-    // Calculate Gross before deductions for display
-    const grossEarnings = (record.amount_paid || 0) + (record.insurance_deduction || 0);
+    // Calculate Basic Salary by subtracting reimbursement from the total paid
+    const basicSalary = (record.amount_paid || 0) - (record.reimbursement || 0);
 
     printWindow.document.write(`
       <html>
@@ -81,7 +80,7 @@ export default function Payroll({ user }) {
             
             <div class="info-grid">
               <div>
-                <div class="info-item"><span class="label">Employee Name:</span> ${emp.first_name} ${emp.last_name}</div>
+                <div class="info-item"><span class="label">Employee Name:</span> ${emp.first_name || ''} ${emp.last_name || ''}</div>
                 <div class="info-item"><span class="label">Employee ID:</span> ${emp.employee_id || 'N/A'}</div>
                 <div class="info-item"><span class="label">Designation:</span> ${emp.designation || 'Software Engineer'}</div>
               </div>
@@ -97,8 +96,8 @@ export default function Payroll({ user }) {
                 <tr><th>Description</th><th style="text-align: right;">Amount</th></tr>
               </thead>
               <tbody>
-                <tr><td>Basic Monthly Salary (Based on Attendance)</td><td style="text-align: right;">${formatCurrency(grossEarnings)}</td></tr>
-                <tr><td style="color: #ef4444;">Insurance Deduction</td><td style="text-align: right; color: #ef4444;">- ${formatCurrency(record.insurance_deduction)}</td></tr>
+                <tr><td>Basic Monthly Salary (Based on Attendance)</td><td style="text-align: right;">${formatCurrency(basicSalary)}</td></tr>
+                <tr><td style="color: #10b981;">Reimbursement</td><td style="text-align: right; color: #10b981;">+ ${formatCurrency(record.reimbursement)}</td></tr>
                 <tr style="font-weight: bold; background: #f8fafc;">
                   <td>Total Net Payable</td>
                   <td style="text-align: right;">${formatCurrency(record.amount_paid)}</td>
